@@ -1,0 +1,54 @@
+
+<h1>Lista de Productos en Tiempo Real</h1>
+
+<form id="productForm">
+  <input type="text" name="title" placeholder="Título" required />
+  <input type="text" name="description" placeholder="Descripción" required />
+  <input type="number" name="price" placeholder="Precio" required />
+  <input type="text" name="category" placeholder="Categoría" required />
+  <button type="submit">Agregar Producto</button>
+</form>
+
+<ul id="productList">
+  {{#each products}}
+    <li data-id="{{this.id}}">
+      <strong>{{this.title}}</strong> - ${{this.price}}
+      <button class="deleteBtn">Eliminar</button>
+    </li>
+  {{/each}}
+</ul>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+
+  const form = document.getElementById('productForm');
+  const productList = document.getElementById('productList');
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const product = Object.fromEntries(formData);
+    product.price = parseFloat(product.price);
+    socket.emit('newProduct', product);
+    form.reset();
+  });
+
+  productList.addEventListener('click', e => {
+    if (e.target.classList.contains('deleteBtn')) {
+      const li = e.target.closest('li');
+      const id = parseInt(li.dataset.id);
+      socket.emit('deleteProduct', id);
+    }
+  });
+
+  socket.on('updateProducts', products => {
+    productList.innerHTML = '';
+    products.forEach(p => {
+      const li = document.createElement('li');
+      li.dataset.id = p.id;
+      li.innerHTML = `<strong>${p.title}</strong> - $${p.price} <button class="deleteBtn">Eliminar</button>`;
+      productList.appendChild(li);
+    });
+  });
+</script>
