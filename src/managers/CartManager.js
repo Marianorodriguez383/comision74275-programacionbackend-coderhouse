@@ -1,30 +1,16 @@
 // src/managers/CartManager.js
-
-import fs from 'fs/promises';
 import path from 'path';
+import { readJSON, writeJSON } from '../utils/fileHandler.js';
 
-const cartsPath = path.resolve('src/data/carts.json');
+const cartsPath = path.resolve('data/carts.json');
 
 export default class CartManager {
   constructor() {
     this.path = cartsPath;
   }
 
-  async _readFile() {
-    try {
-      const data = await fs.readFile(this.path, 'utf-8');
-      return JSON.parse(data);
-    } catch (error) {
-      return [];
-    }
-  }
-
-  async _writeFile(data) {
-    await fs.writeFile(this.path, JSON.stringify(data, null, 2));
-  }
-
   async createCart() {
-    const carts = await this._readFile();
+    const carts = await readJSON(this.path) || [];
     const newId = carts.length ? carts[carts.length - 1].id + 1 : 1;
 
     const newCart = {
@@ -33,21 +19,28 @@ export default class CartManager {
     };
 
     carts.push(newCart);
-    await this._writeFile(carts);
+    await writeJSON(this.path, carts);
     return newCart;
   }
 
   async getCartById(id) {
-    const carts = await this._readFile();
-    return carts.find(cart => cart.id === id);
+    const carts = await readJSON(this.path) || [];
+    return carts.find(cart => cart.id === id) || null;
   }
 
   async addProductToCart(cartId, productId) {
-    const carts = await this._readFile();
+    if (typeof cartId !== 'number' || cartId <= 0) {
+      throw new Error('ID de carrito inválido');
+    }
+    if (typeof productId !== 'number' || productId <= 0) {
+      throw new Error('ID de producto inválido');
+    }
+
+    const carts = await readJSON(this.path) || [];
     const cartIndex = carts.findIndex(c => c.id === cartId);
 
     if (cartIndex === -1) {
-      return null;
+      throw new Error('Carrito no encontrado');
     }
 
     const cart = carts[cartIndex];
@@ -60,7 +53,54 @@ export default class CartManager {
     }
 
     carts[cartIndex] = cart;
-    await this._writeFile(carts);
+    await writeJSON(this.path, carts);
     return cart;
+  }
+
+  // Método para eliminar un producto del carrito
+  async removeProductFromCart(cartId, productId) {
+    if (typeof cartId !== 'number' || cartId <= 0) {
+      throw new Error('ID de carrito inválido');
+    }
+    if (typeof productId !== 'number' || productId <= 0) {
+      throw new Error('ID de producto inválido');
+    }
+
+    const carts = await readJSON(this.path) || [];
+    const cartIndex = carts.findIndex(c => c.id === cartId);
+
+    if (cartIndex === -1) {
+      throw new Error('Carrito no encontrado');
+    }
+
+    const cart = carts[cartIndex];
+    const initialLength = cart.products.length;
+    cart.products = cart.products.filter(p => p.product !== productId);
+
+    if (cart.products.length === initialLength) {
+      throw new Error('Producto no encontrado en el carrito');
+    }
+
+    carts[cartIndex] = cart;
+    await writeJSON(this.path, carts);
+    return cart;
+  }
+
+  // Método para vaciar el carrito (eliminar todos los productos)
+  async clearCart(cartId) {
+    if (typeof cartId !== 'number' || cartId <= 0) {
+      throw new Error('ID de carrito inválido');
+    }
+
+    const carts = await readJSON(this.path) || [];
+    const cartIndex = carts.findIndex(c => c.id === cartId);
+
+    if (cartIndex === -1) {
+      throw new Error('Carrito no encontrado');
+    }
+
+    carts[cartIndex].products = [];
+    await writeJSON(this.path, carts);
+    return carts[cartIndex];
   }
 }

@@ -33,10 +33,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 📦 Rutas
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
+
+// Cambié '/views' a '/' para acceder a las vistas sin prefijo
 app.use('/', viewsRouter);
 
-// 🧠 Lógica de productos 
-const productManager = new ProductManager(path.join(__dirname, 'data/products.json'));
+// 🧠 Lógica de productos para WebSocket 
+// Corregí la ruta al archivo JSON para que apunte bien a la carpeta 'data' fuera de 'src'
+const productManager = new ProductManager(path.join(__dirname, '../data/products.json'));
 
 // 🔌 WebSocket
 io.on('connection', async (socket) => {
