@@ -6,16 +6,20 @@ import handlebars from 'express-handlebars';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import connectDB from './config/db.js';
+
 import productsRouter from './routes/products.router.js';
 import cartsRouter from './routes/carts.router.js';
 import viewsRouter from './routes/views.router.js';
-import ProductManager from './managers/ProductManager.js';
+import ProductMongoManager from './dao/ProductMongoManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 8080;
+
+connectDB();
 
 const httpServer = createServer(app);
 const io = new Server(httpServer);
@@ -33,33 +37,30 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 📦 Rutas
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
-
-// Cambié '/views' a '/' para acceder a las vistas sin prefijo
 app.use('/', viewsRouter);
 
-// 🧠 Lógica de productos para WebSocket 
-// Corregí la ruta al archivo JSON para que apunte bien a la carpeta 'data' fuera de 'src'
-const productManager = new ProductManager(path.join(__dirname, '../data/products.json'));
+// 🧠 Lógica de productos para WebSocket usando MongoDB
+const productManager = new ProductMongoManager();
 
-// 🔌 WebSocket
 io.on('connection', async (socket) => {
   console.log('🟢 Cliente conectado via WebSocket');
 
-  // Enviar lista inicial de productos
-  socket.emit('updateProducts', await productManager.getProducts());
+  // Enviar lista inicial de productos (página 1, limit 10, sin filtro ni orden)
+  const initialProducts = await productManager.getProducts({ limit: 10, page: 1 });
+  socket.emit('updateProducts', initialProducts.docs);
 
   // Escuchar creación de producto
   socket.on('newProduct', async (productData) => {
     await productManager.addProduct(productData);
-    const updatedProducts = await productManager.getProducts();
-    io.emit('updateProducts', updatedProducts);
+    const updatedProducts = await productManager.getProducts({ limit: 10, page: 1 });
+    io.emit('updateProducts', updatedProducts.docs);
   });
 
   // Escuchar eliminación de producto
   socket.on('deleteProduct', async (productId) => {
-    await productManager.deleteProduct(parseInt(productId));
-    const updatedProducts = await productManager.getProducts();
-    io.emit('updateProducts', updatedProducts);
+    await productManager.deleteProduct(productId); // ID es string MongoID
+    const updatedProducts = await productManager.getProducts({ limit: 10, page: 1 });
+    io.emit('updateProducts', updatedProducts.docs);
   });
 });
 

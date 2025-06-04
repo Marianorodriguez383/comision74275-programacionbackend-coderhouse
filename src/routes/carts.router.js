@@ -1,12 +1,11 @@
 // src/routes/carts.router.js
-
 import { Router } from 'express';
-import CartManager from '../managers/CartManager.js';
+import CartMongoManager from '../dao/CartMongoManager.js'; // <-- Asegurate de importar el correcto
 
 const router = Router();
-const cartManager = new CartManager();
+const cartManager = new CartMongoManager();
 
-// POST /api/carts/ → Crear un nuevo carrito
+// POST /api/carts → Crear un nuevo carrito
 router.post('/', async (req, res) => {
   try {
     const newCart = await cartManager.createCart();
@@ -19,7 +18,7 @@ router.post('/', async (req, res) => {
 // GET /api/carts/:cid → Listar productos de un carrito
 router.get('/:cid', async (req, res) => {
   try {
-    const cartId = parseInt(req.params.cid);
+    const cartId = req.params.cid; // Ya es un string
     const cart = await cartManager.getCartById(cartId);
 
     if (!cart) {
@@ -32,11 +31,11 @@ router.get('/:cid', async (req, res) => {
   }
 });
 
-// POST /api/carts/:cid/product/:pid → Agregar producto a carrito
+// POST /api/carts/:cid/product/:pid → Agregar producto al carrito
 router.post('/:cid/product/:pid', async (req, res) => {
   try {
-    const cartId = parseInt(req.params.cid);
-    const productId = parseInt(req.params.pid);
+    const cartId = req.params.cid;
+    const productId = req.params.pid;
 
     const updatedCart = await cartManager.addProductToCart(cartId, productId);
 

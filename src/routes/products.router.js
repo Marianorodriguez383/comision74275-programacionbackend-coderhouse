@@ -1,26 +1,63 @@
 // src/routes/products.router.js
 
 import { Router } from 'express';
-import ProductManager from '../managers/ProductManager.js';
+import ProductMongoManager from '../dao/ProductMongoManager.js';
 
 const router = Router();
-const productManager = new ProductManager();
+const productManager = new ProductMongoManager();
 
-// GET /api/products/ → Listar todos los productos
+// GET /api/products → Listar productos con paginación, filtro y orden
 router.get('/', async (req, res) => {
   try {
-    const products = await productManager.getProducts();
-    res.json(products);
+    const { limit = 10, page = 1, sort, query } = req.query;
+
+    const limitNum = parseInt(limit) || 10;
+    const pageNum = parseInt(page) || 1;
+    const sortStr = sort === 'asc' || sort === 'desc' ? sort : null;
+    const queryStr = query || null;
+
+    const result = await productManager.getProducts({
+      limit: limitNum,
+      page: pageNum,
+      sort: sortStr,
+      query: queryStr,
+    });
+
+    const baseUrl = `${req.protocol}://${req.get('host')}${req.baseUrl}${req.path}`;
+
+    const prevLink = result.hasPrevPage
+      ? `${baseUrl}?page=${result.prevPage}&limit=${limitNum}${sortStr ? `&sort=${sortStr}` : ''}${queryStr ? `&query=${queryStr}` : ''}`
+      : null;
+    const nextLink = result.hasNextPage
+      ? `${baseUrl}?page=${result.nextPage}&limit=${limitNum}${sortStr ? `&sort=${sortStr}` : ''}${queryStr ? `&query=${queryStr}` : ''}`
+      : null;
+
+    res.json({
+      status: 'success',
+      payload: result.docs,
+      totalPages: result.totalPages,
+      prevPage: result.prevPage,
+      nextPage: result.nextPage,
+      page: result.page,
+      hasPrevPage: result.hasPrevPage,
+      hasNextPage: result.hasNextPage,
+      prevLink,
+      nextLink,
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener productos.' });
+    res.status(500).json({
+      status: 'error',
+      error: 'Error al obtener productos',
+      message: error.message,
+    });
   }
 });
 
-// GET /api/products/:pid → Obtener un producto por ID
+// GET /api/products/:pid → Obtener producto por ID
 router.get('/:pid', async (req, res) => {
   try {
-    const id = parseInt(req.params.pid);
-    const product = await productManager.getProductById(id);
+    const pid = req.params.pid;
+    const product = await productManager.getProductById(pid);
 
     if (!product) {
       return res.status(404).json({ error: 'Producto no encontrado.' });
@@ -32,7 +69,7 @@ router.get('/:pid', async (req, res) => {
   }
 });
 
-// POST /api/products/ → Agregar un nuevo producto
+// POST /api/products → Agregar nuevo producto
 router.post('/', async (req, res) => {
   try {
     const { title, description, code, price, stock, category, thumbnails } = req.body;
@@ -48,7 +85,7 @@ router.post('/', async (req, res) => {
       price,
       stock,
       category,
-      thumbnails: thumbnails || []
+      thumbnails: thumbnails || [],
     });
 
     res.status(201).json(newProduct);
@@ -57,13 +94,13 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/products/:pid → Actualizar un producto
+// PUT /api/products/:pid → Actualizar producto
 router.put('/:pid', async (req, res) => {
   try {
-    const id = parseInt(req.params.pid);
+    const pid = req.params.pid;
     const updateData = req.body;
 
-    const updatedProduct = await productManager.updateProduct(id, updateData);
+    const updatedProduct = await productManager.updateProduct(pid, updateData);
 
     if (!updatedProduct) {
       return res.status(404).json({ error: 'Producto no encontrado.' });
@@ -75,11 +112,11 @@ router.put('/:pid', async (req, res) => {
   }
 });
 
-// DELETE /api/products/:pid → Eliminar un producto
+// DELETE /api/products/:pid → Eliminar producto
 router.delete('/:pid', async (req, res) => {
   try {
-    const id = parseInt(req.params.pid);
-    const deleted = await productManager.deleteProduct(id);
+    const pid = req.params.pid;
+    const deleted = await productManager.deleteProduct(pid);
 
     if (!deleted) {
       return res.status(404).json({ error: 'Producto no encontrado.' });
