@@ -45,32 +45,32 @@ app.use('/', viewsRouter);
 app.use('/products', productViewsRouter);
 
 
-// 🧠 Lógica de productos para WebSocket usando MongoDB
+
 const productManager = new ProductMongoManager();
 
 io.on('connection', async (socket) => {
   console.log('🟢 Cliente conectado via WebSocket');
 
-  // Enviar lista inicial de productos (página 1, limit 10, sin filtro ni orden)
+  
   const initialProducts = await productManager.getProducts({ limit: 10, page: 1 });
   socket.emit('updateProducts', initialProducts.docs);
 
-  // Escuchar creación de producto
+  
   socket.on('newProduct', async (productData) => {
     await productManager.addProduct(productData);
     const updatedProducts = await productManager.getProducts({ limit: 10, page: 1 });
     io.emit('updateProducts', updatedProducts.docs);
   });
 
-  // Escuchar eliminación de producto
+  
   socket.on('deleteProduct', async (productId) => {
-    await productManager.deleteProduct(productId); // ID es string MongoID
+    await productManager.deleteProduct(productId); 
     const updatedProducts = await productManager.getProducts({ limit: 10, page: 1 });
     io.emit('updateProducts', updatedProducts.docs);
   });
 });
 
-// Arrancar el servidor
+
 httpServer.listen(PORT, () => {
   console.log(`Servidor escuchando en http://localhost:${PORT}`);
 });

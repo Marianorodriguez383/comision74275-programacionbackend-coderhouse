@@ -1,4 +1,4 @@
-// src/routes/products.router.js
+
 
 import { Router } from 'express';
 import ProductMongoManager from '../dao/ProductMongoManager.js';

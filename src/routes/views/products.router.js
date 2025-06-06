@@ -1,4 +1,4 @@
-// src/routes/views/products.router.js
+
 
 import { Router } from 'express';
 import ProductMongoManager from '../../dao/ProductMongoManager.js';
@@ -6,7 +6,7 @@ import ProductMongoManager from '../../dao/ProductMongoManager.js';
 const router = Router();
 const productManager = new ProductMongoManager();
 
-// Ruta para renderizar el detalle del producto
+
 router.get('/:pid', async (req, res) => {
   try {
     const pid = req.params.pid;
