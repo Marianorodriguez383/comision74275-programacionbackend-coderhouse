@@ -20,19 +20,23 @@ class ProductMongoManager {
   }
 
   async getProductById(pid) {
-    return await ProductModel.findById(pid);
+    return await ProductModel.findById(pid).lean();
   }
 
   async addProduct(productData) {
-    return await ProductModel.create(productData);
+    const product = await ProductModel.create(productData);
+    return product.toObject();
   }
 
   async updateProduct(pid, data) {
-    return await ProductModel.findByIdAndUpdate(pid, data, { new: true });
+    return await ProductModel.findByIdAndUpdate(pid, data, { 
+      new: true,
+      lean: true 
+    });
   }
 
   async deleteProduct(pid) {
-    return await ProductModel.findByIdAndDelete(pid);
+    return await ProductModel.findByIdAndDelete(pid).lean();
   }
 }
 

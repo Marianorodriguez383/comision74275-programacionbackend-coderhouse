@@ -1,15 +1,15 @@
-// src/routes/views.router.js
 import { Router } from 'express';
 import ProductMongoManager from '../dao/ProductMongoManager.js';
-
+import CartMongoManager from '../dao/CartMongoManager.js';
 
 const router = Router();
-const productManager = new ProductMongoManager(); // O tu método para obtener productos
+const productManager = new ProductMongoManager();
+const cartManager = new CartMongoManager();
 
 router.get('/', async (req, res) => {
   try {
-    const products = await productManager.getProducts(); // Ajusta según tu método
-    res.render('home', { products });
+    const products = await productManager.getProducts({ limit: 10, page: 1 });
+    res.render('home', { products: products.docs });
   } catch (error) {
     res.status(500).send('Error al cargar los productos');
   }
@@ -36,14 +36,39 @@ router.get('/products', async (req, res) => {
   }
 });
 
-
-
 router.get('/realtimeproducts', async (req, res) => {
   try {
-    const products = await productManager.getProducts(); // Ajusta según tu método
-    res.render('realTimeProducts', { products });
+    const products = await productManager.getProducts({ limit: 10, page: 1 });
+    res.render('realTimeProducts', { products: products.docs });
   } catch (error) {
     res.status(500).send('Error al cargar los productos');
+  }
+});
+
+router.get('/cart/:cid', async (req, res) => {
+  const cartId = req.params.cid;
+  try {
+    const cart = await cartManager.getCartById(cartId);
+    if (!cart) return res.status(404).send('Carrito no encontrado');
+
+    const processedCart = {
+      ...cart,
+      products: cart.products.map(item => ({
+        ...item,
+        product: {
+          ...item.product,
+          title: item.product?.title || 'Producto no disponible',
+          price: item.product?.price || 0,
+          description: item.product?.description || '',
+          category: item.product?.category || '',
+          stock: item.product?.stock || 0
+        }
+      }))
+    };
+
+    res.render('cart', { cart: processedCart });
+  } catch (error) {
+    res.status(500).send('Error al obtener el carrito');
   }
 });
 

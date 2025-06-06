@@ -8,14 +8,12 @@
       Precio: ${{this.price}}<br>
       Stock: {{this.stock}}<br>
       Categoría: {{this.category}}<br>
-      
+
       <a href="/products/{{this._id}}">
         <button>Ver Detalle</button>
       </a>
-      
-      <form action="/api/carts/tu_carrito_id/product/{{this._id}}" method="POST" style="display:inline;">
-        <button type="submit">Agregar al carrito</button>
-      </form>
+
+      <button class="add-to-cart-btn" data-productid="{{this._id}}">Agregar al carrito</button>
     </li>
   {{/each}}
 </ul>
@@ -31,3 +29,44 @@
     <a href="?page={{nextPage}}&limit={{limit}}">Página siguiente ➡️</a>
   {{/if}}
 </div>
+
+<!-- Agregamos SweetAlert2 desde CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+  // Aquí deberías obtener dinámicamente el carrito actual; para probar, poné el ID fijo:
+  const cartId = '68421db9db703fb9187e60b5'; // Cambialo por el ID de carrito real del usuario
+
+  document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+    button.addEventListener('click', async () => {
+      const productId = button.getAttribute('data-productid');
+      try {
+        const res = await fetch(`/api/carts/${cartId}/product/${productId}`, {
+          method: 'POST'
+        });
+        if (res.ok) {
+          Swal.fire({
+            icon: 'success',
+            title: '¡Producto agregado!',
+            text: 'El producto fue agregado al carrito correctamente.',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        } else {
+          const err = await res.json();
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: err.error || 'No se pudo agregar el producto.'
+          });
+        }
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error en la petición',
+          text: error.message
+        });
+      }
+    });
+  });
+</script>

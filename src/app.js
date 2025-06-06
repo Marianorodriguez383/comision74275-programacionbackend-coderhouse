@@ -5,8 +5,11 @@ import { Server } from 'socket.io';
 import handlebars from 'express-handlebars';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
+import methodOverride from 'method-override';
 import connectDB from './config/db.js';
+import productViewsRouter from './routes/views/products.router.js';
+
+
 
 import productsRouter from './routes/products.router.js';
 import cartsRouter from './routes/carts.router.js';
@@ -33,11 +36,14 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(methodOverride('_method'));
 
 // 📦 Rutas
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
 app.use('/', viewsRouter);
+app.use('/products', productViewsRouter);
+
 
 // 🧠 Lógica de productos para WebSocket usando MongoDB
 const productManager = new ProductMongoManager();
