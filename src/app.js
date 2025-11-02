@@ -14,6 +14,11 @@ import cartsRouter from './routes/carts.router.js';
 import viewsRouter from './routes/views.router.js';
 import ProductMongoManager from './dao/ProductMongoManager.js';
 
+
+import passport from './config/passport.config.js';
+import sessionsRouter from './routes/sessions.router.js';
+import usersRouter from './routes/users.router.js';
+
 // Configuración inicial
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -26,13 +31,18 @@ if (!process.env.MONGO_URI) {
   process.exit(1);
 }
 
+// ✅ VERIFICAR JWT_SECRET 
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  Advertencia: JWT_SECRET no está definido. Usando valor por defecto para desarrollo.');
+  process.env.JWT_SECRET = 'secreto_desarrollo_74275_coderhouse';
+}
+
 // 🚀 Conexión a MongoDB con manejo mejorado de errores
 const connectDB = async () => {
   try {
     console.log('🔌 Intentando conectar a MongoDB Atlas...');
     
     await mongoose.connect(process.env.MONGO_URI, {
-      
       serverSelectionTimeoutMS: 30000, // 30 segundos de espera
       socketTimeoutMS: 45000,         // 45 segundos para timeout de socket
       family: 4                       // Usar IPv4
@@ -96,11 +106,34 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(methodOverride('_method'));
 
-// 📦 Rutas
+// ✅ MIDDLEWARE NUEVO: Passport para autenticación
+app.use(passport.initialize());
+
+// 📦 Rutas EXISTENTES
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
 app.use('/', viewsRouter);
 app.use('/products', productViewsRouter);
+
+
+app.use('/api/sessions', sessionsRouter);
+app.use('/api/users', usersRouter);
+
+// ✅ Ruta de verificación de estado del servidor 
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'success',
+    message: '🚀 Servidor funcionando correctamente',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    endpoints: {
+      sessions: '/api/sessions',
+      users: '/api/users',
+      products: '/api/products',
+      carts: '/api/carts'
+    }
+  });
+});
 
 // Manejo de WebSockets
 const productManager = new ProductMongoManager();
@@ -142,18 +175,45 @@ io.on('connection', async (socket) => {
   });
 });
 
-// Manejo de errores global
+// ✅ Manejo de errores global mejorado
+app.use((err, req, res, next) => {
+  console.error('❌ Error del servidor:', err);
+  res.status(500).json({
+    status: 'error',
+    message: 'Error interno del servidor',
+    ...(process.env.NODE_ENV === 'development' && { error: err.message })
+  });
+});
+
+// ✅ Manejo de rutas no encontradas
+app.use('*', (req, res) => {
+  res.status(404).json({
+    status: 'error',
+    message: 'Ruta no encontrada'
+  });
+});
+
 process.on('unhandledRejection', (err) => {
-  console.error('Error no capturado:', err);
+  console.error('❌ Error no capturado (unhandledRejection):', err);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('❌ Excepción no capturada (uncaughtException):', err);
+  process.exit(1);
 });
 
 // Iniciar servidor después de conectar a DB
 const startServer = async () => {
   try {
-    await connectDB(); // Aquí está el await principal para la conexión a DB
+    await connectDB(); 
     
     httpServer.listen(PORT, () => {
       console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
+      console.log(`🔐 Endpoints de autenticación:`);
+      console.log(`   📍 POST /api/sessions/register - Registro de usuarios`);
+      console.log(`   📍 POST /api/sessions/login - Login de usuarios`);
+      console.log(`   📍 GET  /api/sessions/current - Usuario actual (requiere token)`);
+      console.log(`   📍 GET  /api/health - Estado del servidor`);
     });
   } catch (error) {
     console.error('❌ Error al iniciar el servidor:', error);
