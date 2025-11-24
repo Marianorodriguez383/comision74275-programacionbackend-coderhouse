@@ -2,6 +2,10 @@ import CartModel from '../models/Cart.js';
 import ProductModel from '../models/Product.js';
 
 class CartMongoManager {
+  constructor() {
+    this.cartModel = CartModel; // ✅ Agregar constructor
+  }
+
   async getCartById(cid) {
     const cart = await CartModel.findById(cid)
       .populate('products.product')
@@ -83,6 +87,18 @@ class CartMongoManager {
     const result = await CartModel.findByIdAndDelete(cid).lean();
     if (!result) throw new Error('Carrito no encontrado');
     return result;
+  }
+
+  async updateCartProducts(cartId, products) {
+    try {
+      return await CartModel.findByIdAndUpdate( // ✅ Usar CartModel directamente
+        cartId,
+        { products: products },
+        { new: true }
+      );
+    } catch (error) {
+      throw new Error(`Error updating cart products: ${error.message}`);
+    }
   }
 }
 

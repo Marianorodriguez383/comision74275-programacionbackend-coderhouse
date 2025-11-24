@@ -1,6 +1,10 @@
 import ProductModel from '../models/Product.js';
 
 class ProductMongoManager {
+  constructor() {
+    this.productModel = ProductModel; // ✅ Agregar constructor
+  }
+
   async getProducts({ limit = 10, page = 1, sort, query }) {
     const filter = query ? { $or: [
       { category: query },
@@ -28,11 +32,16 @@ class ProductMongoManager {
     return product.toObject();
   }
 
-  async updateProduct(pid, data) {
-    return await ProductModel.findByIdAndUpdate(pid, data, { 
-      new: true,
-      lean: true 
-    });
+  async updateProduct(productId, updateData) {
+    try {
+      return await ProductModel.findByIdAndUpdate( // ✅ Usar ProductModel directamente
+        productId,
+        updateData,
+        { new: true }
+      );
+    } catch (error) {
+      throw new Error(`Error updating product: ${error.message}`);
+    }
   }
 
   async deleteProduct(pid) {

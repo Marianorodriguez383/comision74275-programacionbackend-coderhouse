@@ -1,3 +1,4 @@
+// src/dtos/UserDTO.js
 export default class UserDTO {
   constructor(user) {
     this.id = user._id || user.id;
@@ -6,12 +7,11 @@ export default class UserDTO {
     this.email = user.email;
     this.age = user.age;
     this.role = user.role;
-    this.cart = user.cart;
+    // ✅ REMOVEMOS: this.cart = user.cart; (información sensible)
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;
   }
 
-  // Método estático para crear DTO sin información sensible
   static fromUser(user) {
     if (!user) return null;
     
@@ -22,13 +22,12 @@ export default class UserDTO {
       email: user.email,
       age: user.age,
       role: user.role,
-      cart: user.cart,
+      // ✅ REMOVEMOS: cart: user.cart,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     });
   }
 
-  // Método para respuesta pública (sin datos sensibles)
   toJSON() {
     return {
       id: this.id,
@@ -37,7 +36,7 @@ export default class UserDTO {
       email: this.email,
       age: this.age,
       role: this.role,
-      cart: this.cart,
+      // ✅ REMOVEMOS: cart: this.cart,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };
