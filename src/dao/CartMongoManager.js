@@ -91,7 +91,7 @@ class CartMongoManager {
 
   async updateCartProducts(cartId, products) {
     try {
-      return await CartModel.findByIdAndUpdate( // ✅ Usar CartModel directamente
+      return await CartModel.findByIdAndUpdate( //
         cartId,
         { products: products },
         { new: true }
